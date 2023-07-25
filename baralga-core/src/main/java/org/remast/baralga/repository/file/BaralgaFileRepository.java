@@ -80,47 +80,116 @@ public class BaralgaFileRepository implements BaralgaRepository {
      * otherwise an existing database will be updated.
      * @throws SQLException on error during update
      */
+//    void updateDatabase() throws SQLException {
+//        boolean databaseExists = false;
+//
+//        // Look for table db_version if that is present the database has already been set up
+//        try (final Statement statement = connection.createStatement()) {
+//            try (ResultSet resultSet = statement.executeQuery("SHOW TABLES")) { //$NON-NLS-1$
+//                while (resultSet.next()) {
+//                    if ("db_version".equalsIgnoreCase(resultSet.getString("TABLE_NAME"))) { //$NON-NLS-1$ //$NON-NLS-2$
+//                        databaseExists = true;
+//                        break;
+//                    }
+//                }
+//            }
+//
+//            if (!databaseExists) {
+//                log.info("Creating Baralga DB."); //$NON-NLS-1$
+//                executeScript("setup_database.sql");
+//                log.info("Baralga DB successfully created."); //$NON-NLS-1$
+//            }
+//            connection.commit();
+//
+//            /** The current version number of the database. */
+//            int databaseVersion = -1;
+//            String description = "-"; //$NON-NLS-1$
+//            try (ResultSet resultSet = statement.executeQuery("select version, description from db_version order by version desc limit 1")) { //$NON-NLS-1$
+//                if (resultSet.next()) {
+//                    databaseVersion = resultSet.getInt("version"); //$NON-NLS-1$
+//                    description = resultSet.getString("description"); //$NON-NLS-1$
+//                }
+//            }
+//
+//            int versionDifference = LATEST_DATABASE_VERSION - databaseVersion;
+//            for (int i = 1; i <= versionDifference; i++) {
+//                final int versionUpdate = databaseVersion + i;
+//                log.info("Updating database to version {}.", versionUpdate); //$NON-NLS-1$
+//                final String updateScript = "db_version_" + StringUtils.leftPad(String.valueOf(versionUpdate), 3, "0") + ".sql";
+//                executeScript(updateScript);
+//            }
+//
+//            log.info("Using Baralga DB Version: {}, description: {}.", databaseVersion, description); //$NON-NLS-1$
+//        }
+//    }
     void updateDatabase() throws SQLException {
-        boolean databaseExists = false;
+        boolean databaseExists = checkDatabaseExists();
 
-        // Look for table db_version if that is present the database has already been set up
+        if (!databaseExists) {
+            log.info("Creating Baralga DB.");
+            createDatabase();
+            log.info("Baralga DB successfully created.");
+        }
+
+        int databaseVersion = getDatabaseVersion();
+        updateDatabaseToLatestVersion(databaseVersion);
+
+        log.info("Using Baralga DB Version: {}, description: {}.", databaseVersion, getDatabaseDescription());
+    }
+
+    private boolean checkDatabaseExists() throws SQLException {
         try (final Statement statement = connection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery("SHOW TABLES")) { //$NON-NLS-1$
+            try (ResultSet resultSet = statement.executeQuery("SHOW TABLES")) {
                 while (resultSet.next()) {
-                    if ("db_version".equalsIgnoreCase(resultSet.getString("TABLE_NAME"))) { //$NON-NLS-1$ //$NON-NLS-2$
-                        databaseExists = true;
-                        break;
+                    if ("db_version".equalsIgnoreCase(resultSet.getString("TABLE_NAME"))) {
+                        return true;
                     }
                 }
             }
+        }
+        return false;
+    }
 
-            if (!databaseExists) {
-                log.info("Creating Baralga DB."); //$NON-NLS-1$
-                executeScript("setup_database.sql");
-                log.info("Baralga DB successfully created."); //$NON-NLS-1$
-            }
-            connection.commit();
+    /** Function to create database. */
+    private void createDatabase() throws SQLException {
+        executeScript("setup_database.sql");
+        connection.commit();
+    }
 
-            /** The current version number of the database. */
-            int databaseVersion = -1;
-            String description = "-"; //$NON-NLS-1$
-            try (ResultSet resultSet = statement.executeQuery("select version, description from db_version order by version desc limit 1")) { //$NON-NLS-1$
+    /** Function to check the current version number of the database. */
+    private int getDatabaseVersion() throws SQLException {
+        int failure = -1;
+        try (final Statement statement = connection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery("select version from db_version order by version desc limit 1")) {
                 if (resultSet.next()) {
-                    databaseVersion = resultSet.getInt("version"); //$NON-NLS-1$
-                    description = resultSet.getString("description"); //$NON-NLS-1$
+                    return resultSet.getInt("version");
                 }
             }
-
-            int versionDifference = LATEST_DATABASE_VERSION - databaseVersion;
-            for (int i = 1; i <= versionDifference; i++) {
-                final int versionUpdate = databaseVersion + i;
-                log.info("Updating database to version {}.", versionUpdate); //$NON-NLS-1$
-                final String updateScript = "db_version_" + StringUtils.leftPad(String.valueOf(versionUpdate), 3, "0") + ".sql";
-                executeScript(updateScript);
-            }
-
-            log.info("Using Baralga DB Version: {}, description: {}.", databaseVersion, description); //$NON-NLS-1$
         }
+        return failure;
+    }
+
+    /** Function to update the current version of database. */
+    private void updateDatabaseToLatestVersion(int currentVersion) throws SQLException {
+        int versionDifference = LATEST_DATABASE_VERSION - currentVersion;
+        for (int i = 1; i <= versionDifference; i++) {
+            final int versionUpdate = currentVersion + i;
+            log.info("Updating database to version {}.", versionUpdate);
+            final String updateScript = "db_version_" + StringUtils.leftPad(String.valueOf(versionUpdate), 3, "0") + ".sql";
+            executeScript(updateScript);
+        }
+        connection.commit();
+    }
+
+    private String getDatabaseDescription() throws SQLException {
+        try (final Statement statement = connection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery("select description from db_version order by version desc limit 1")) {
+                if (resultSet.next()) {
+                    return resultSet.getString("description");
+                }
+            }
+        }
+        return "-";
     }
 
     /**

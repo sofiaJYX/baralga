@@ -12,13 +12,9 @@ import org.remast.util.TextResourceBundle;
  */
 public class BaralgaEvent {
 
-    /** The bundle for internationalized texts. */
     private static final TextResourceBundle textBundle = TextResourceBundle.getBundle(BaralgaEvent.class);
 
-    //------------------------------------------------
     // Constants for ProTrack Events
-    //------------------------------------------------
-
     /** A project has been changed. I.e. a new project is active now. */
     public static final int PROJECT_CHANGED = 0;
 
@@ -70,19 +66,6 @@ public class BaralgaEvent {
     /** The source that fired the event. */
     private Object source;
 
-    /**
-     * Constructor for a new event.
-     * @param type the type of the event.
-     */
-//    public BaralgaEvent(final int type) {
-//        this.type = type;
-//    }
-
-    /**
-     * Constructor for a new event.
-     * @param type the type of the event.
-     * @param source the source that fired the event
-     */
     public BaralgaEvent(final int type, final Object source) {
         this.type = type;
         this.source = source;
@@ -93,70 +76,50 @@ public class BaralgaEvent {
      * @return <code>true</code> if undoing the event is possible else <code>false</code>
      */
     public final boolean canBeUndone() {
-        // INFO: For now only adding / removing activities can be undone.
-        return this.type == PROJECT_ACTIVITY_REMOVED 
-        || this.type == PROJECT_ACTIVITY_ADDED;
+        return this.type == PROJECT_ACTIVITY_REMOVED || this.type == PROJECT_ACTIVITY_ADDED;
     }
 
-    @SuppressWarnings("unchecked")
     public String getUndoText() {
         switch (this.type) {
-        case PROJECT_ACTIVITY_REMOVED:
-        {
-            final List<ProjectActivity> projectActivities = (List<ProjectActivity>) this.data;
-            if (projectActivities.size() == 1) {
-                final ProjectActivity projectActivity = projectActivities.get(0);
-                return textBundle.textFor("BaralgaEvent.UndoRemoveActivityText", projectActivity.toString());
-            } else {
-                return textBundle.textFor("BaralgaEvent.UndoRemoveActivitiesText", projectActivities.size());
-            }
-        }
-        case PROJECT_ACTIVITY_ADDED:
-        {
-            final List<ProjectActivity> projectActivities = (List<ProjectActivity>) this.data;
-            if (projectActivities.size() == 1) {
-                final ProjectActivity projectActivity = projectActivities.get(0);
-                return textBundle.textFor("BaralgaEvent.UndoAddActivityText", projectActivity.toString());
-            } else {
-                return textBundle.textFor("BaralgaEvent.UndoAddActivitiesText", projectActivities.size());
-            }
-        }
-        default:
-            return "-impossible-";
+            case PROJECT_ACTIVITY_REMOVED:
+                return createUndoRedoActivityText("BaralgaEvent.UndoRemoveActivityText",
+                        "BaralgaEvent.UndoRemoveActivitiesText");
+            case PROJECT_ACTIVITY_ADDED:
+                return createUndoRedoActivityText("BaralgaEvent.UndoAddActivityText",
+                        "BaralgaEvent.UndoAddActivitiesText");
+            default:
+                return "-impossible-";
         }
     }
 
-    @SuppressWarnings("unchecked")
-	public String getRedoText() {
+    public String getRedoText() {
         switch (this.type) {
-        case PROJECT_ACTIVITY_REMOVED:
-        {
-            final List<ProjectActivity> projectActivities = (List<ProjectActivity>) this.data;
-            if (projectActivities.size() == 1) {
-                final ProjectActivity projectActivity =  projectActivities.get(0);
-                return textBundle.textFor("BaralgaEvent.RedoRemoveActivityText", projectActivity.toString());
-            } else {
-                return textBundle.textFor("BaralgaEvent.RedoRemoveActivitiesText", projectActivities.size());
-            }
-        }
-        case PROJECT_ACTIVITY_ADDED:
-        {
-            final List<ProjectActivity> projectActivities = (List<ProjectActivity>) this.data;
-            if (projectActivities.size() == 1) {
-                final ProjectActivity projectActivity = projectActivities.get(0);
-                return textBundle.textFor("BaralgaEvent.RedoAddActivityText", projectActivity.toString());
-            } else {
-                return textBundle.textFor("BaralgaEvent.RedoAddActivitiesText", projectActivities.size());
-            }
-        }
-        default:
-            return "-impossible-";
+            case PROJECT_ACTIVITY_REMOVED:
+                return createUndoRedoActivityText("BaralgaEvent.RedoRemoveActivityText",
+                        "BaralgaEvent.RedoRemoveActivitiesText");
+            case PROJECT_ACTIVITY_ADDED:
+                return createUndoRedoActivityText("BaralgaEvent.RedoAddActivityText",
+                        "BaralgaEvent.RedoAddActivitiesText");
+            default:
+                return "-impossible-";
         }
     }
-    
+
+    private String createUndoRedoActivityText(String singleTextKey, String pluralTextKey) {
+        @SuppressWarnings("unchecked")
+        final List<ProjectActivity> projectActivities = (List<ProjectActivity>) this.data;
+        final int activityCount = projectActivities.size();
+        if (activityCount == 1) {
+            final ProjectActivity projectActivity = projectActivities.get(0);
+            return textBundle.textFor(singleTextKey, projectActivity.toString());
+        } else {
+            return textBundle.textFor(pluralTextKey, activityCount);
+        }
+    }
+
     @Override
     public String toString() {
-    	return "BaralgaEvent{"+ "data: " + data + ", type: " + type + "}";
+        return "BaralgaEvent{" + "data: " + data + ", type: " + type + "}";
     }
 
     /**

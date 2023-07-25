@@ -26,7 +26,7 @@ public class ProjectListTableFormat implements WritableTableFormat<Project> {
     }
 
     public boolean isEditable(final Project project, final int column) {
-        return model.isProjectAdministrationAllowed();
+        return model.isProjectAdminAllowed();
     }
 
     public Project setColumnValue(final Project project, final Object value, final int column) {

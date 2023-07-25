@@ -294,7 +294,7 @@ public class MainFrame extends JFrame {
             final AbstractBaralgaAction exitAction = new ImportXmlAction(this, this.model);
             importXmlItem = new JMenuItem(exitAction);
             importXmlItem.setMnemonic(exitAction.getMnemonic());
-            importXmlItem.setEnabled(model.isProjectAdministrationAllowed());
+            importXmlItem.setEnabled(model.isProjectAdminAllowed());
         }
         return importXmlItem;
     }
