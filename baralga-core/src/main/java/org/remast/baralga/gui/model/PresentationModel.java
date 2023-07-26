@@ -8,12 +8,8 @@ import org.remast.baralga.gui.BaralgaMain;
 import org.remast.baralga.gui.events.BaralgaEvent;
 import org.remast.baralga.gui.lists.ProjectFilterList;
 import org.remast.baralga.gui.model.edit.EditStack;
-import org.remast.baralga.gui.model.report.HoursByDayReport;
-import org.remast.baralga.gui.model.report.HoursByMonthReport;
-import org.remast.baralga.gui.model.report.HoursByProjectReport;
-import org.remast.baralga.gui.model.report.HoursByQuarterReport;
-import org.remast.baralga.gui.model.report.HoursByWeekReport;
-import org.remast.baralga.gui.model.report.ObservingAccumulatedActivitiesReport;
+
+import org.remast.baralga.gui.model.report.*;
 import org.remast.baralga.gui.settings.UserSettings;
 import org.remast.baralga.model.BaralgaDAO;
 import org.remast.baralga.model.Project;
@@ -44,6 +40,7 @@ import java.util.Optional;
  */
 public class PresentationModel {
 
+	private final ReportManager reportManager;
 	private EventBus eventBus = new EventBus();
 
 	public final EventBus getEventBus() {
@@ -105,6 +102,7 @@ public class PresentationModel {
 	 * Creates a new model.
 	 */
 	public PresentationModel() {
+		this.reportManager = new ReportManager(this);
 		this.projectList = new SortedList<>(new BasicEventList<>());
 		this.allProjectsList = new SortedList<>(new BasicEventList<>());
 		this.activitiesList = new SortedList<>(new BasicEventList<>());
@@ -163,7 +161,6 @@ public class PresentationModel {
 			editStack = new EditStack(this);
 			eventBus.register(editStack);
 		}
-
 	}
 
 	/**
@@ -612,28 +609,28 @@ public class PresentationModel {
 		return new ProjectFilterList(this);
 	}
 
-	public final ObservingAccumulatedActivitiesReport getFilteredReport() {
-		return new ObservingAccumulatedActivitiesReport(this);
+	public ObservingAccumulatedActivitiesReport getFilteredReport() {
+		return reportManager.getFilteredReport();
 	}
 
-	public final HoursByWeekReport getHoursByWeekReport() {
-		return new HoursByWeekReport(this);
+	public HoursByWeekReport getHoursByWeekReport() {
+		return reportManager.getHoursByWeekReport();
 	}
 
-	public final HoursByQuarterReport getHoursByQuarterReport() {
-	    	return new HoursByQuarterReport(this);
-	}
-	    
-	public final HoursByMonthReport getHoursByMonthReport() {
-		return new HoursByMonthReport(this);
+	public HoursByQuarterReport getHoursByQuarterReport() {
+		return reportManager.getHoursByQuarterReport();
 	}
 
-	public final HoursByDayReport getHoursByDayReport() {
-		return new HoursByDayReport(this);
+	public HoursByMonthReport getHoursByMonthReport() {
+		return reportManager.getHoursByMonthReport();
 	}
 
-	public final HoursByProjectReport getHoursByProjectReport() {
-		return new HoursByProjectReport(this);
+	public HoursByDayReport getHoursByDayReport() {
+		return reportManager.getHoursByDayReport();
+	}
+
+	public HoursByProjectReport getHoursByProjectReport() {
+		return reportManager.getHoursByProjectReport();
 	}
 
 	/**

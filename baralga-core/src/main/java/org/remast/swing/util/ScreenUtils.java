@@ -13,12 +13,11 @@ import java.awt.geom.Area;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.JApplet;
+import javax.swing.JComponent;
 
 /**
  * A helper class for screen related stuff.
  * 
- * A partial copy of the JIDE {@link com.jidesoft.utils.PortingUtils}
  * but:
  * - fixes ensureOnScreen() to handle the taskbar on Windows correctly
  * - cleaned up initialization
@@ -143,7 +142,7 @@ public class ScreenUtils {
         Dimension screenSize = SCREEN_BOUNDS.getSize();
 
         // jdk1.4 only
-        if (invoker != null && !(invoker instanceof JApplet) && invoker.getGraphicsConfiguration() != null) {
+        if (invoker instanceof JComponent && invoker.getGraphicsConfiguration() != null) {
             Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(invoker.getGraphicsConfiguration());
             screenSize.width -= insets.left + insets.right;
             screenSize.height -= insets.top + insets.bottom;
@@ -151,6 +150,7 @@ public class ScreenUtils {
 
         return screenSize;
     }
+
 
     /**
      * Gets the screen size. In JDK1.4+, the returned size will exclude task bar area on Windows OS.
@@ -160,7 +160,7 @@ public class ScreenUtils {
      */
     public static Dimension getLocalScreenSize(final Component invoker) {
         // jdk1.4 only
-        if (invoker != null && !(invoker instanceof JApplet) && invoker.getGraphicsConfiguration() != null) {
+        if (invoker instanceof JComponent && invoker.getGraphicsConfiguration() != null) {
             // to handle multi-display case
             GraphicsConfiguration gc = invoker.getGraphicsConfiguration();
             Rectangle bounds = gc.getBounds();
@@ -183,7 +183,7 @@ public class ScreenUtils {
         // to handle multi-display case
         Rectangle bounds = (Rectangle) SCREEN_BOUNDS.clone();
 
-        if (invoker != null && !(invoker instanceof JApplet) && invoker.getGraphicsConfiguration() != null) {
+        if (invoker instanceof JComponent && invoker.getGraphicsConfiguration() != null) {
             Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(invoker.getGraphicsConfiguration());
             bounds.x += insets.left;
             bounds.y += insets.top;
@@ -232,53 +232,36 @@ public class ScreenUtils {
      * @return rect after its position has been modified
      */
     public static Rectangle ensureOnScreen(final Rectangle rect) {
-        // optimize it so that it is faster for most cases
         Rectangle localScreenBounds = getLocalScreenBounds();
         if (localScreenBounds.contains(rect)) {
             return rect;
         }
 
-        // see if the top left is on any of the screens
-        Rectangle containgScreen = null;
+        // Find the screen that contains the top-left corner of the rectangle
+        Rectangle containingScreen = null;
         Point rectPos = rect.getLocation();
         for (Rectangle screenBounds : SCREENS_WITH_INSETS) {
             if (screenBounds.contains(rectPos)) {
-                containgScreen = screenBounds;
+                containingScreen = screenBounds;
                 break;
             }
         }
-        // if not see if rect partial on any screen
-        for (Rectangle screenBounds : SCREENS_WITH_INSETS) {
-            if (screenBounds.intersects(rect)) {
-                containgScreen = screenBounds;
-                break;
-            }
+
+        // If the rectangle is not fully contained in any screen, fall back to the first screen
+        if (containingScreen == null) {
+            containingScreen = SCREENS_WITH_INSETS[0];
         }
-        // check if it was on any screen
-        if (containgScreen == null) {
-            // it was not on any of the screens so center it on the first screen
-            rect.x = (SCREENS_WITH_INSETS[0].width - rect.width) / 2;
-            rect.y = (SCREENS_WITH_INSETS[0].width - rect.width) / 2;
-            return rect;
-        } else {
-            // move rect so it is completely on a single screen
-            // check X
-            int rectRight = rect.x + rect.width;
-            int screenRight = containgScreen.x + containgScreen.width;
-            if (rectRight > screenRight) {
-                rect.x = screenRight - rect.width;
-            }
-            if (rect.x < containgScreen.x) rect.x = containgScreen.x;
-            // check Y
-            int rectBottom = rect.y + rect.height;
-            int screenBottom = containgScreen.y + containgScreen.height;
-            if (rectBottom > screenBottom) {
-                rect.y = screenBottom - rect.height;
-            }
-            if (rect.y < containgScreen.y) rect.y = containgScreen.y;
-            // return corrected rect
-            return rect;
-        }
+
+        // Adjust the position of the rectangle to fit it within the containing screen
+        int rectRight = rect.x + rect.width;
+        int screenRight = containingScreen.x + containingScreen.width;
+        int rectBottom = rect.y + rect.height;
+        int screenBottom = containingScreen.y + containingScreen.height;
+
+        rect.x = Math.min(Math.max(rect.x, containingScreen.x), screenRight - rect.width);
+        rect.y = Math.min(Math.max(rect.y, containingScreen.y), screenBottom - rect.height);
+
+        return rect;
     }
 
     /**
